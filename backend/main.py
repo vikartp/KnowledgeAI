@@ -20,6 +20,8 @@ from langchain_core.prompts import ChatPromptTemplate
 load_dotenv()
 OPENAI_API_BASE = os.getenv("OPENAI_API_BASE")  
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "text-embedding-3-large")
+LLM_MODEL = os.getenv("LLM_MODEL", "gpt-4o")
 # NextAuth secret for validating NextAuth JWT tokens (must match frontend NEXTAUTH_SECRET)
 NEXTAUTH_SECRET = os.getenv("NEXTAUTH_SECRET")
 if not NEXTAUTH_SECRET:
@@ -49,7 +51,7 @@ app.add_middleware(
 persist_directory = "./chroma_db"
 try:
     embeddings = OpenAIEmbeddings(
-    model="text-embedding-3-large",
+    model=EMBEDDING_MODEL,
     api_key=OPENAI_API_KEY,
     base_url=OPENAI_API_BASE,
     )
@@ -173,7 +175,7 @@ async def ask_question(
     retriever = vectorstore.as_retriever(search_kwargs={"k": 3})
     # llm = ChatOpenAI(model="gpt-3.5-turbo", temperature=0)
     llm = ChatOpenAI(
-        model="gpt-4o", # Model zoo
+        model=LLM_MODEL, # Model zoo
         temperature=0,
         base_url= OPENAI_API_BASE,
         max_tokens=150, # Guardrail for token generation usage
