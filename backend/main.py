@@ -122,6 +122,12 @@ async def upload_pdf(
         loader = PyPDFLoader(tmp_path)
         docs = loader.load()
 
+        if len(docs) > 15:
+            raise HTTPException(
+                status_code=400, 
+                detail=f"PDF document is too large ({len(docs)} pages). Maximum 15 pages allowed to safeguard usage limits."
+            )
+
         text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
         splits = text_splitter.split_documents(docs)
 
@@ -170,6 +176,7 @@ async def ask_question(
         model="gpt-4o", # Model zoo
         temperature=0,
         base_url= OPENAI_API_BASE,
+        max_tokens=150, # Guardrail for token generation usage
     )
     
     system_prompt = (

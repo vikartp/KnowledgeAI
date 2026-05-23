@@ -75,9 +75,10 @@ export default function Dashboard() {
       });
       setUploadSuccess(true);
       setMessages(prev => [...prev, { role: "assistant", content: "Document processed successfully! What would you like to know?" }]);
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
-      alert("Failed to upload document");
+      const errorMsg = error.response?.data?.detail || error.response?.data?.message || error.message || "Failed to upload document";
+      alert(`Upload Error: ${errorMsg}`);
     } finally {
       setIsUploading(false);
     }
@@ -100,9 +101,10 @@ export default function Dashboard() {
         }
       });
       setMessages(prev => [...prev, { role: "assistant", content: res.data.answer }]);
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
-      setMessages(prev => [...prev, { role: "assistant", content: "Sorry, there was an error processing your query." }]);
+      const errorMsg = error.response?.data?.detail || error.response?.data?.message || error.message || "Sorry, there was an error processing your query.";
+      setMessages(prev => [...prev, { role: "assistant", content: `Error: ${errorMsg}` }]);
     } finally {
       setIsAsking(false);
     }
