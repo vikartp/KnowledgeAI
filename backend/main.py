@@ -12,10 +12,12 @@ from jose import JWTError, jwt
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_openai import OpenAIEmbeddings, ChatOpenAI
-from langchain_community.vectorstores import Chroma
+from langchain_chroma import Chroma
 from langchain_classic.chains import create_retrieval_chain
 from langchain_classic.chains.combine_documents import create_stuff_documents_chain
 from langchain_core.prompts import ChatPromptTemplate
+from langchain_classic.retrievers import ContextualCompressionRetriever
+from langchain_classic.retrievers.document_compressors import FlashrankRerank
 
 load_dotenv()
 OPENAI_API_BASE = os.getenv("OPENAI_API_BASE")  
@@ -59,6 +61,10 @@ try:
 except Exception as e:
     print(f"❌ Failed to initialize OpenAIEmbeddings: {e}")
     embeddings = None
+
+# Initialize the FlashRank reranker at startup (downloads model on first run, then cached)
+rerank_compressor = FlashrankRerank(model="ms-marco-MiniLM-L-12-v2", top_n=3)
+print("✅ FlashRank reranker initialized")
 
 # Models
 class AskRequest(BaseModel):
@@ -172,7 +178,12 @@ async def ask_question(
     else:
         raise HTTPException(status_code=404, detail="No documents found for this user. Please upload a PDF first.")
 
-    retriever = vectorstore.as_retriever(search_kwargs={"k": 3})
+    # Retrieve a larger set of candidates, then rerank to keep the most relevant
+    base_retriever = vectorstore.as_retriever(search_kwargs={"k": 10})
+    retriever = ContextualCompressionRetriever(
+        base_compressor=rerank_compressor,
+        base_retriever=base_retriever,
+    )
     # llm = ChatOpenAI(model="gpt-3.5-turbo", temperature=0)
     llm = ChatOpenAI(
         model=LLM_MODEL, # Model zoo
